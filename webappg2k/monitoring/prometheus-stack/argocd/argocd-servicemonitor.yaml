@@ -1,0 +1,56 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-server
+  namespace: argocd
+labels:
+  release: prometheus  # ← Adapte ce label selon ton Prometheus Operator
+spec:
+  endpoints:
+    - port: metrics
+      targetPort: 8083
+      interval: 30s
+  namespaceSelector:
+    matchNames:
+      - argocd
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-server
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-repo-server
+  namespace: argocd
+labels:
+  release: prometheus
+spec:
+  endpoints:
+    - port: metrics
+      targetPort: 8081
+      interval: 30s
+  namespaceSelector:
+    matchNames:
+      - argocd
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-repo-server
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-notifications
+  namespace: argocd
+labels:
+  release: prometheus
+spec:
+  endpoints:
+    - port: metrics
+      targetPort: 9001
+      interval: 30s
+  namespaceSelector:
+    matchNames:
+      - argocd
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-notifications-controller

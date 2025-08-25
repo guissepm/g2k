@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: monitoring
+  labels:
+    app: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      securityContext:
+        fsGroup: 472
+      containers:
+        - name: grafana
+          image: grafana/grafana:latest
+          securityContext:
+            runAsUser: 472
+            runAsGroup: 472
+            runAsNonRoot: true
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: grafana-storage
+              mountPath: /var/lib/grafana
+            - name: grafana-datasources
+              mountPath: /etc/grafana/provisioning/datasources
+              readOnly: true
+            - name: grafana-dashboard-provider
+              mountPath: /etc/grafana/provisioning/dashboards
+              readOnly: true
+            - name: grafana-dashboard-prometheus
+              mountPath: /etc/grafana/provisioning/dashboards/prometheus
+              readOnly: true
+            - name: grafana-dashboard-node-exporter
+              mountPath: /etc/grafana/provisioning/dashboards/node-exporter
+              readOnly: true
+            - name: grafana-dashboard-argocd
+              mountPath: /etc/grafana/provisioning/dashboards/argocd
+              readOnly: true
+
+      volumes:
+        - name: grafana-storage
+          persistentVolumeClaim:
+            claimName: grafana
+        - name: grafana-datasources
+          configMap:
+            name: grafana-datasources
+        - name: grafana-dashboard-provider
+          configMap:
+            name: grafana-dashboard-provider
+        - name: grafana-dashboard-prometheus
+          configMap:
+            name: grafana-dashboard-prometheus
+        - name: grafana-dashboard-node-exporter
+          configMap:
+            name: grafana-dashboard-node-exporter
+        - name: grafana-dashboard-argocd
+          configMap:
+            name: grafana-dashboard-argocd
+

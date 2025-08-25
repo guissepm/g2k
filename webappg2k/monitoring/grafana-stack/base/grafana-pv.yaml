@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: grafana-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: example-nfs
+  nfs:
+    server: 192.168.99.90
+    path: /srv/nfs/grafana
+  persistentVolumeReclaimPolicy: Retain

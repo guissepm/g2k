@@ -1,0 +1,28 @@
+resources:
+  - rbac/prometheus-serviceAccount.yaml
+  - rbac/prometheus-clusterRole.yaml
+  - rbac/prometheus-clusterRoleBinding.yaml
+
+  - base/prometheus-config.yaml
+  - base/prometheus-deployment.yaml
+  - base/prometheus-service.yaml
+  - base/prometheus-alert-rules.yaml
+
+  - alertmanager/alertmanager-config.yaml
+  - alertmanager/alertmanager-deployment.yaml
+  - alertmanager/alertmanager-service.yaml
+
+  - nginx-exporter/nginx-exporter-deployment.yaml
+  - nginx-exporter/nginx-exporter-service.yaml
+  - nginx-exporter/nginx-exporter-servicemonitor.yaml
+
+  - kube-state-metrics/ksm-deployment.yaml
+  - kube-state-metrics/ksm-service.yaml
+  - kube-state-metrics/ksm-servicemonitor.yaml
+
+  - node-exporter/node-exporter-daemonset.yaml
+  - node-exporter/node-exporter-service.yaml
+  - node-exporter/node-exporter-servicemonitor.yaml
+
+  - argocd/argocd-metrics-service.yaml
+  - argocd/argocd-servicemonitor.yaml 

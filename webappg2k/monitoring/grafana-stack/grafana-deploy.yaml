@@ -1,0 +1,227 @@
+# Arborescence Kustomize Grafana + NFS + Prometheus Datasource
+
+# base/grafana-pv.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: grafana-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: example-nfs
+  nfs:
+    server: 192.168.56.10
+    path: /srv/nfs/grafana
+  persistentVolumeReclaimPolicy: Retain
+
+---
+# base/grafana-pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: example-nfs
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+# base/grafana-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      securityContext:
+        fsGroup: 1001
+      containers:
+        - name: grafana
+          image: grafana/grafana:latest
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: grafana-storage
+              mountPath: /var/lib/grafana
+            - name: grafana-datasources
+              mountPath: /etc/grafana/provisioning/datasources
+            - name: grafana-dashboards
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: grafana-dashboard-config
+              mountPath: /etc/grafana/provisioning/dashboards/custom
+              readOnly: true
+      volumes:
+        - name: grafana-storage
+          persistentVolumeClaim:
+            claimName: grafana
+        - name: grafana-datasources
+          configMap:
+            name: grafana-datasources
+        - name: grafana-dashboards
+          configMap:
+            name: grafana-dashboard-provider
+        - name: grafana-dashboard-config
+          configMap:
+            name: grafana-dashboard-sample
+
+---
+# base/grafana-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  selector:
+    app: grafana
+  type: NodePort
+  ports:
+    - port: 80
+      targetPort: 3000
+      nodePort: 30001
+
+---
+# base/grafana-datasource.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: monitoring
+  labels:
+    grafana_datasource: "1"
+data:
+  prometheus.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus-service.monitoring.svc.cluster.local:8090
+        isDefault: true
+        editable: true
+    
+---
+# base/grafana-dashboard-provider.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-provider
+  namespace: monitoring
+data:
+  provider.yaml: |
+    apiVersion: 1
+    providers:
+      - name: default
+        orgId: 1
+        folder: ""
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /etc/grafana/provisioning/dashboards/custom
+
+---
+# base/grafana-dashboard-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-sample
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  dashboard.json: |
+    {
+      "id": null,
+      "title": "Node Exporter Stats",
+      "timezone": "browser",
+      "schemaVersion": 36,
+      "version": 1,
+      "refresh": "5s",
+      "panels": [
+        {
+          "type": "graph",
+          "title": "CPU Usage",
+          "targets": [
+            {
+              "expr": "100 - (avg by(instance)(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+              "legendFormat": "{{instance}}",
+              "refId": "A"
+            }
+          ],
+          "datasource": "Prometheus",
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          }
+        }
+      ]
+    }
+
+---
+# base/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: monitoring
+resources:
+  - grafana-pv.yaml
+  - grafana-pvc.yaml
+  - grafana-deployment.yaml
+  - grafana-service.yaml
+  - grafana-datasource.yaml
+  - grafana-dashboard-provider.yaml
+  - grafana-dashboard-configmap.yaml
+
+
+#Souhaites-tu maintenant :
+
+#Ajouter d’autres dashboards ?
+
+#Intégrer des alertes ?
+
+#Configurer l’accès avec un nom de domaine via Ingress ?
+
+#Sauvegarder les dashboards créés manuellement ?
+
+#Ajouter Loki ou Promtail pour les logs ?
+
+#Tu peux me dire ce que tu veux faire ensuite.
+
+Prochaines étapes possibles
+Souhaites-tu :
+
+Ajouter d'autres dashboards auto-provisionnés ?
+
+Créer des alertes avec Alertmanager ?
+
+Intégrer Loki/Promtail pour visualiser les logs ?
+
+Sauvegarder automatiquement les dashboards manuellement créés ?
+
+Je peux t'accompagner étape par étape.
+
+
+
+
+
+
+
+
+

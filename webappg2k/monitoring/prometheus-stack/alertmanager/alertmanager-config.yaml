@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: monitoring
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+      smtp_smarthost: 'smtp.example.com:587'
+      smtp_from: 'alertmanager@example.com'
+      smtp_auth_username: 'alertmanager@example.com'
+      smtp_auth_password: 'yourpassword'  # ⚠️ Recommande d'utiliser un Secret à la place
+    route:
+      group_by: ['alertname']
+      group_wait: 10s
+      group_interval: 5m
+      repeat_interval: 1h
+      receiver: 'default'
+    receivers:
+      - name: 'default'
+        email_configs:
+          - to: 'admin@example.com'

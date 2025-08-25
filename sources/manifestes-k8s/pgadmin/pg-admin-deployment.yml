@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pg-admin
+  labels:
+    app: pg-admin
+    env: prod
+  namespace: ic-webapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels: 
+      app: pg-admin
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: pg-admin
+    spec:
+      containers:
+      - image: dpage/pgadmin4
+        name: pg-admin
+        env:
+        - name: PGADMIN_DEFAULT_EMAIL
+          value: pgadmin@pgadmin.com
+        - name: PGADMIN_DEFAULT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: pg-admin
+              key: PGADMIN_DEFAULT_PASSWORD
+        ports:
+        - containerPort: 5050
+          name: pgadmin
+        volumeMounts:
+        - name: pg-admin-server
+          mountPath: /pgadmin4/servers.json
+          subPath: servers.json
+        - name: pg-admin-data
+          mountPath: /var/lib/pgadmin
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: pg-admin-server
+        configMap:
+          name: pgadmin-config
+          items:
+          - key: servers.json
+            path: servers.json    
+      - name: pg-admin-data
+        persistentVolumeClaim:
+          claimName: pgadmin-pvc

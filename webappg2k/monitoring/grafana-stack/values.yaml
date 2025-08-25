@@ -1,0 +1,27 @@
+admin:
+  user: admin
+  password: admin
+
+service:
+  type: NodePort
+  nodePorts:
+    grafana: 32000
+
+persistence:
+  enabled: true
+  existingClaim: grafana
+  storageClassName: example-nfs  
+
+securityContext:
+  fsGroup: 1001
+  runAsUser: 1001
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus-service.monitoring.svc.cluster.local:8090
+        isDefault: true

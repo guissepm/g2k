@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-server-conf
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 20s
+    scrape_configs:
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+
+      - job_name: 'node-exporter'
+        static_configs:
+          - targets:
+              - 'node-exporter.monitoring.svc.cluster.local:9100'
+      
+        - job_name: 'argocd-server'
+          static_configs:
+            - targets:
+                - 'argocd-server-metrics.argocd.svc.cluster.local:8083'
+
+        - job_name: 'argocd-repo-server'
+          static_configs:
+            - targets:
+                - 'argocd-repo-server.argocd.svc.cluster.local:8081'
+
+        - job_name: 'argocd-notifications'
+          static_configs:
+            - targets:
+                - 'argocd-notifications-controller-metrics.argocd.svc.cluster.local:9001'
+
+

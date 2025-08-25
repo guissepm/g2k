@@ -1,0 +1,224 @@
+# 📦 Chart Helm Grafana (avec datasource Prometheus + dashboard Node Exporter)
+
+## 📁 Structure
+```
+grafana/
+├── Chart.yaml
+├── values.yaml
+├── templates/
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   ├── pvc.yaml
+│   ├── datasource-config.yaml
+│   ├── dashboard-provider.yaml
+│   └── dashboard-configmap.yaml
+```
+
+---
+
+# Chart.yaml
+```yaml
+apiVersion: v2
+name: grafana
+version: 0.1.0
+description: Custom Grafana deployment with Prometheus datasource and dashboard
+```
+
+---
+
+# values.yaml
+```yaml
+replicaCount: 1
+image:
+  repository: grafana/grafana
+  tag: latest
+  pullPolicy: IfNotPresent
+service:
+  type: NodePort
+  port: 80
+  nodePort: 30001
+persistence:
+  enabled: true
+  storageClassName: example-nfs
+  size: 10Gi
+adminUser: admin
+adminPassword: admin
+prometheusUrl: http://prometheus-service.monitoring.svc.cluster.local:8090
+```
+
+---
+
+# templates/deployment.yaml
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  labels:
+    app: grafana
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      securityContext:
+        fsGroup: 1001
+      containers:
+        - name: grafana
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          ports:
+            - containerPort: 3000
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: {{ .Values.adminUser }}
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: {{ .Values.adminPassword }}
+          volumeMounts:
+            - name: storage
+              mountPath: /var/lib/grafana
+            - name: datasources
+              mountPath: /etc/grafana/provisioning/datasources
+            - name: dashboards
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: dashboard-config
+              mountPath: /etc/grafana/provisioning/dashboards/custom
+              readOnly: true
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: grafana
+        - name: datasources
+          configMap:
+            name: grafana-datasources
+        - name: dashboards
+          configMap:
+            name: grafana-dashboard-provider
+        - name: dashboard-config
+          configMap:
+            name: grafana-dashboard-sample
+```
+
+---
+
+# templates/service.yaml
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app: grafana
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 3000
+      nodePort: {{ .Values.service.nodePort }}
+```
+
+---
+
+# templates/pvc.yaml
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size }}
+  storageClassName: {{ .Values.persistence.storageClassName }}
+```
+
+---
+
+# templates/datasource-config.yaml
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  labels:
+    grafana_datasource: "1"
+data:
+  prometheus.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: {{ .Values.prometheusUrl }}
+        isDefault: true
+```
+
+---
+
+# templates/dashboard-provider.yaml
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-provider
+data:
+  provider.yaml: |
+    apiVersion: 1
+    providers:
+      - name: default
+        orgId: 1
+        folder: ""
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /etc/grafana/provisioning/dashboards/custom
+```
+
+---
+
+# templates/dashboard-configmap.yaml
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-sample
+  labels:
+    grafana_dashboard: "1"
+data:
+  dashboard.json: |
+    {
+      "id": null,
+      "title": "Node Exporter Stats",
+      "timezone": "browser",
+      "schemaVersion": 36,
+      "version": 1,
+      "refresh": "5s",
+      "panels": [
+        {
+          "type": "graph",
+          "title": "CPU Usage",
+          "targets": [
+            {
+              "expr": "100 - (avg by(instance)(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+              "legendFormat": "{{instance}}",
+              "refId": "A"
+            }
+          ],
+          "datasource": "Prometheus",
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          }
+        }
+      ]
+    }
+```
